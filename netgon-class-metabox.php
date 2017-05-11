@@ -49,29 +49,31 @@ class Netgon_Metabox
         if ( count( $this->fields ) == 1 ) {
             $this->fields[ 0 ]->label = '';
         }
+		
+		$nonce_name = $this->nonce_name;
+		
+		if ( $fields = $this->render_fields( array( 'post' => $post ) ) ) {
         
-        $render_metabox = function ( $post ) {
-            
-            if ( $fields = $this->render_fields( array( 'post' => $post ) ) ) {
-            
-                foreach ( $fields as $field ) {
-                    echo $field[ 'label' ] . $field[ 'field' ];
-                }
-                
-                echo '<input type="hidden" name="' . $this->nonce_name . 
-                    '" value="' . wp_create_nonce( __FILE__ ) . '" />';
-            }
-        };
-    
-        add_meta_box( 
-            $this->name,
-            $this->label,
-            $render_metabox
-        );
+			$render_metabox = function () use ( $fields, $nonce_name ) {
+				
+				foreach ( $fields as $field ) {
+					echo $field[ 'label' ] . $field[ 'field' ];
+				}
+				
+				echo '<input type="hidden" name="' . $nonce_name . 
+					'" value="' . wp_create_nonce( __FILE__ ) . '" />';
+			};
+		
+			add_meta_box( 
+				$this->name,
+				$this->label,
+				$render_metabox
+			);
+		}
     }
     
-    public function add_to_term_add() {
-        
+    public function add_to_term_add() 
+	{        
         if ( $fields = $this->render_fields() ) {
             echo '<div class="form-field">';
         
@@ -83,8 +85,8 @@ class Netgon_Metabox
         }
     }
     
-    public function add_to_term_edit( $term ) {
-        
+    public function add_to_term_edit( $term ) 
+	{        
         if ( $fields = $this->render_fields( array( 'term' => $term ) ) ) {
         
             echo '<table class="form-table"><tbody>';
@@ -102,55 +104,65 @@ class Netgon_Metabox
         }
     }
     
-    public function render_fields( $args = array() ) {
-        $defaults = array(
-            'post' => '',
-            'term' => ''
-        );
-        
-        $args = wp_parse_args( $args, $defaults );
-    
-        $fields = array();
-        
-        foreach ( $this->fields as $field ) {
-            $rendered_field = array();
-            
-            if ( $post = $args[ 'post' ] ) {
-                $this->get_field_value( $post->ID, $field, 'get_post_meta' );
-            }
-            
-            if ( $term = $args[ 'term' ] ) {
-                $this->get_field_value( $term->term_id, $field, 'get_term_meta' );
-            }
-            
-            if ( count( $this->fields ) == 1 ) {
-                $field->name = $this->name;
-            } else {                  
-                $field->name = $this->name . '[' . $field->name . ']';
-            }
+    public function render_fields( $args = array() ) 
+	{        
+		$fields = array();
+		
+		if ( $this->fields ) {
+		
+			$defaults = array(
+				'post' => '',
+				'term' => ''
+			);
+			
+			$args = wp_parse_args( $args, $defaults );
+			
+			foreach ( $this->fields as $field ) {
+				
+				$rendered_field = array();
+				
+				if ( $post = $args[ 'post' ] ) {
+					$this->get_field_value( $post->ID, $field, 'get_post_meta' );
+				}
+				
+				if ( $term = $args[ 'term' ] ) {
+					$this->get_field_value( $term->term_id, $field, 'get_term_meta' );
+				}
+				
+				if ( count( $this->fields ) == 1 ) {
+					$field->name = $this->name;
+				} else {                  
+					$field->name = $this->name . '[' . $field->name . ']';
+				}
 
-            $rendering_function = 'render_field_' . $field->type;
-            
-            if ( $field->label ) {
-            
-                if ( $args[ 'post' ] ) {
-                    $rendered_field[ 'label' ] = 
-                        '<p class="post-attributes-label-wrapper">' .
-                            '<label class="post-attributes-label" for="' . $field->name . '">' . $field->label . '</label>' .
-                        '</p>';                  
-                } else {
-                    $rendered_field[ 'label' ] = '<label for="' . $field->name . '">' . $field->label . '</label>';
-                }
-            } else $rendered_field[ 'label' ] = '';
-            
-            $rendered_field[ 'field' ] = $this->$rendering_function( $field );
-            $fields[] = $rendered_field;
-        }
+				$rendering_function = 'render_field_' . $field->type;
+				
+				if ( $field->label ) {
+				
+					if ( $args[ 'post' ] ) {
+						$rendered_field[ 'label' ] = 
+							'<p class="post-attributes-label-wrapper">' .
+								'<label class="post-attributes-label" for="' . $field->name . '">' . $field->label . '</label>' .
+							'</p>';                  
+					} else {
+						$rendered_field[ 'label' ] = '<label for="' . $field->name . '">' . $field->label . '</label>';
+					}
+				} else $rendered_field[ 'label' ] = '';
+				
+				$rendered_field[ 'field' ] = $this->$rendering_function( $field );
+				
+				if ( isset( $rendered_field[ 'field' ] ) ) {
+				
+					$fields[] = $rendered_field;
+				}
+			}
+		}
         
-        return $fields;
+		return $fields;
     }
     
-    public function get_field_value( $object_id, $field, $function_name ) {
+    public function get_field_value( $object_id, $field, $function_name ) 
+	{
                 
         if ( count( $this->fields ) == 1 ) {
             $field->value = $function_name( $object_id, '_' . $this->name, true );
@@ -224,7 +236,8 @@ class Netgon_Metabox
         }
     }
     
-    public function prepare_for_save() {
+    public function prepare_for_save() 
+	{
         
         if ( is_array( $_POST[ $this->name ] ) ) {
             $data_to_save = http_build_query( $_POST[ $this->name ] );
@@ -237,7 +250,12 @@ class Netgon_Metabox
     
     function render_field_text( $field ) 
     {
-        return '<input type="text" name="' . $field->name . '" value="' . $field->value . '">';
+        return '<input type="text" name="' . $field->name . '" value="' . $field->value . '"' . ( $field->id ? ' id="' . $field->id . '"' : '' )  . '>';
+    }
+    
+    function render_field_textarea( $field ) 
+    {
+        return '<textarea name="' . $field->name . '" class="widefat"' . ( $field->id ? ' id="' . $field->id . '"' : '' )  . '>' . $field->value . '</textarea>';
     }
     
     function render_field_select( $field ) 
@@ -259,7 +277,9 @@ class Netgon_Metabox
             'selected' => $field->value,
         );
     
-        return netgon_post_type_dropdown( $args );
+        if ( function_exists( 'netgon_post_type_dropdown' ) ) {
+			return netgon_post_type_dropdown( $args );
+		}
     }
 } 
 
@@ -273,8 +293,8 @@ class Netgon_Meta_Field
     public $post_type = ''; /* for "post type dropdown" field type */
     
     function __construct( $args = array() ) 
-    {
-        $defaults = array(
+    {		
+		$defaults = array(
             'type' => 'text',
             'name' => '',
             'value' => '',
