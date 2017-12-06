@@ -164,16 +164,12 @@ class Netgon_Metabox
     public function get_field_value( $object_id, $field, $function_name ) 
 	{
                 
-        if ( count( $this->fields ) == 1 ) {
+        if ( count( $this->fields ) == 1 ) {        
             $field->value = $function_name( $object_id, '_' . $this->name, true );
-        } else {                  
-            parse_str( $function_name( $object_id, '_' . $this->name, true ), $meta_data );
-
-            if ( array_key_exists( $field->name, $meta_data ) && 
-                ! empty( $meta_data[ $field->name ] ) ) {
-                $field->value = $meta_data[ $field->name ];
-            }
             
+        } else {            
+            $meta_data = $function_name( $object_id, '_' . $this->name, true );
+            $field->value = ( isset( $meta_data[ $field->name ] ) ? $meta_data[ $field->name ] : '' );
         }  
     }
     
@@ -189,14 +185,13 @@ class Netgon_Metabox
                 ! isset( $_POST[ $this->name ] ) ) {
                 
                 return false;
-            }
-            
-            $data_to_save = $this->prepare_for_save();          
+            }     
       
-            if ( get_post_meta( $post_id, '_' . $this->name ) && empty( $data_to_save ) ) {
+            if ( get_post_meta( $post_id, '_' . $this->name ) && empty( $_POST[ $this->name ] ) ) {
                 delete_post_meta( $post_id, '_' . $this->name );
+                
             } else {
-                update_post_meta( $post_id, '_' . $this->name, $data_to_save );
+                update_post_meta( $post_id, '_' . $this->name, $_POST[ $this->name ] );
             }
         }
         
@@ -211,12 +206,13 @@ class Netgon_Metabox
         
             if ( ! isset( $_POST[ $this->name ] ) ) return false;
             
-            $data_to_save = $this->prepare_for_save();
+            //$data_to_save = $this->prepare_for_save();
 
-            if ( get_term_meta( $term_id, '_' . $this->name ) && empty( $data_to_save ) ) {
+            if ( get_term_meta( $term_id, '_' . $this->name ) && empty( $_POST[ $this->name ] ) ) {
                 delete_term_meta( $term_id, '_' . $this->name );
+                
             } else {
-                update_term_meta( $term_id, '_' . $this->name, $data_to_save );
+                update_term_meta( $term_id, '_' . $this->name, $_POST[ $this->name ] );
             }
         }
     }
@@ -235,19 +231,7 @@ class Netgon_Metabox
             }
         }
     }
-    
-    public function prepare_for_save() 
-	{
-        
-        if ( is_array( $_POST[ $this->name ] ) ) {
-            $data_to_save = http_build_query( $_POST[ $this->name ] );
-        } else {
-            $data_to_save = trim( $_POST[ $this->name ] );
-        }  
-        
-        return $data_to_save;
-    }
-    
+
     function render_field_text( $field ) 
     {
         return '<input type="text" name="' . $field->name . '" value="' . $field->value . '"' . ( $field->id ? ' id="' . $field->id . '"' : '' )  . '>';
